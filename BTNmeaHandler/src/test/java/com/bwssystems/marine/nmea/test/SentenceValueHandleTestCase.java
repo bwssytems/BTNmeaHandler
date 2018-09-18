@@ -1,19 +1,27 @@
 package com.bwssystems.marine.nmea.test;
 
+import java.io.DataOutputStream;
+
 import org.junit.Assert;
 import org.junit.Test;
 
 import com.bwssystems.marine.nmea.NmeaValueNotification;
 
 public class SentenceValueHandleTestCase {
+	private DataOutputStream outToClient;
 
+
+	public SentenceValueHandleTestCase() {
+		super();
+		outToClient = new DataOutputStream(System.out);
+	}
 
 	@Test
     public void testPositive() {
         String testChunk = "262,W,155702.00,A,D*7A\r\n$HCHDM,182.00,M\r\n$APGLL,4153";
         String targetSentence = "$HCHDM,182.00,M\r\n";
         
-        NmeaValueNotification aNotify = new NmeaValueNotification();
+        NmeaValueNotification aNotify = new NmeaValueNotification(outToClient);
         
         aNotify.run(testChunk.getBytes());
         Assert.assertEquals(aNotify.getLastSentence(), targetSentence); 
@@ -26,7 +34,7 @@ public class SentenceValueHandleTestCase {
         String testChunk3 = "fu@:Gv5sP0?wV2@NA,0*52\r\n$GPGLL,4153.08462,N,";
         String targetSentence = "!AIVDM,1,1,,B,15NS7U0P00qfu@:Gv5sP0?wV2@NA,0*52\r\n";
 
-        NmeaValueNotification aNotify = new NmeaValueNotification();
+        NmeaValueNotification aNotify = new NmeaValueNotification(outToClient);
         aNotify.run(testChunk1.getBytes());
         aNotify.run(testChunk2.getBytes());
         aNotify.run(testChunk3.getBytes());
@@ -38,7 +46,7 @@ public class SentenceValueHandleTestCase {
         String testChunk1 = "$GPVTG,,T,,M,0.040,N";
         String testChunk2 = ",0.075,K,D*20$HCHDM,182.";
         String targetSentence = "$GPVTG,,T,,M,0.040,N,0.075,K,D*20\r\n";
-        NmeaValueNotification aNotify = new NmeaValueNotification();
+        NmeaValueNotification aNotify = new NmeaValueNotification(outToClient);
         aNotify.run(testChunk1.getBytes());
         aNotify.run(testChunk2.getBytes());
         Assert.assertEquals(aNotify.getLastSentence(), targetSentence); 
@@ -49,7 +57,7 @@ public class SentenceValueHandleTestCase {
         String testChunk1 = "$GPVTG,,T,,M,0.040,N";
         String testChunk2 = ",0.075,K,D*20\r$HCHDM,182.";
         String targetSentence = "$GPVTG,,T,,M,0.040,N,0.075,K,D*20\r\n";
-        NmeaValueNotification aNotify = new NmeaValueNotification();
+        NmeaValueNotification aNotify = new NmeaValueNotification(outToClient);
         aNotify.run(testChunk1.getBytes());
         aNotify.run(testChunk2.getBytes());
         Assert.assertEquals(aNotify.getLastSentence(), targetSentence); 
@@ -59,7 +67,7 @@ public class SentenceValueHandleTestCase {
         String testChunk1 = "$GPVTG,,T,,M,0.040,N";
         String testChunk2 = ",0.075,K,D*20\n$HCHDM,182.";
         String targetSentence = "$GPVTG,,T,,M,0.040,N,0.075,K,D*20\r\n";
-        NmeaValueNotification aNotify = new NmeaValueNotification();
+        NmeaValueNotification aNotify = new NmeaValueNotification(outToClient);
         aNotify.run(testChunk1.getBytes());
         aNotify.run(testChunk2.getBytes());
         Assert.assertEquals(aNotify.getLastSentence(), targetSentence); 

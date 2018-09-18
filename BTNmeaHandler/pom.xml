@@ -23,8 +23,18 @@
 			<groupId>tinyb</groupId>
 			<artifactId>tinyb</artifactId>
 			<version>1.0.1</version>
-		   <scope>system</scope>
-		   <systemPath>/usr/lib/lib/java/tinyb.jar</systemPath>
+			<scope>system</scope>
+			<systemPath>/usr/lib/lib/java/tinyb.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.24</version>
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>1.2.1</version>
 		</dependency>
 	</dependencies>
 
@@ -42,9 +52,9 @@
 							<mainClass>com.bwssystems.marine.nmea.BTNmeaReader</mainClass>
 							<classpathPrefix>BTNmeaReader_lib/</classpathPrefix>
 						</manifest>
-                        <manifestEntries>
-                            <Class-Path>BTNmeaReader_lib/tinyb.jar</Class-Path>
-                        </manifestEntries>
+						<manifestEntries>
+							<Class-Path>BTNmeaReader_lib/tinyb.jar</Class-Path>
+						</manifestEntries>
 					</archive>
 				</configuration>
 			</plugin>

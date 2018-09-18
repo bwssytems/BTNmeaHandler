@@ -9,15 +9,19 @@ package com.bwssystems.marine.nmea;
 import tinyb.*;
 import java.time.*;
 import java.util.concurrent.locks.*;
+import java.io.*;
+import java.net.*;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 public class BTNmeaReader {
     static boolean running = true;
+	private final static Logger log = LoggerFactory.getLogger(BTNmeaReader.class);
 
     static void printDevice(BluetoothDevice device) {
-        System.out.print("Address = " + device.getAddress());
-        System.out.print(" Name = " + device.getName());
-        System.out.print(" Connected = " + device.getConnected());
-        System.out.println();
+        log.info("Found device: Address = " + device.getAddress() + ", Name = " + device.getName() + ", Connected = " + device.getConnected());
     }
 
     static float convertCelsius(int raw) {
@@ -31,12 +35,15 @@ public class BTNmeaReader {
      * The API used in this example is based on TinyB v0.3, which only supports polling, but v0.4 will introduce a
      * simplied API for discovering devices and services.
      */
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, IOException {
+        String clientSentence;
 
-        if (args.length < 1) {
-            System.err.println("Run with <device_address> argument");
+        if (args.length < 2) {
+            log.error("Run with <bt_device_address> <port> arguments");
             System.exit(-1);
         }
+
+        ServerSocket welcomeSocket = new ServerSocket(Integer.parseInt(args[1]));
 
         /*
          * To start looking of the device, we first must initialize the TinyB library. The way of interacting with the
@@ -51,7 +58,7 @@ public class BTNmeaReader {
          */
         boolean discoveryStarted = manager.startDiscovery();
 
-        System.out.println("The discovery started: " + (discoveryStarted ? "true" : "false"));
+        log.info("The discovery started: " + (discoveryStarted ? "true" : "false"));
 
         /*
          * After discovery is started, new devices will be detected. We can find the device we are interested in
@@ -60,26 +67,24 @@ public class BTNmeaReader {
         BluetoothDevice marineDevice = manager.find(null, args[0], null, Duration.ofSeconds(10));
 
         if (marineDevice == null) {
-            System.err.println("No marineDevice found with the provided address.");
+            log.error("No marineDevice found with the provided address.");
             System.exit(-1);
         }
 
-        marineDevice.enableConnectedNotifications(new ConnectedNotification());
-
-        System.out.print("Found device: ");
-        printDevice(marineDevice);
+        marineDevice.enableConnectedNotifications(new ConnectedNotification(manager));
 
         if (marineDevice.connect())
-            System.out.println("marineDevice with the provided address connected");
+            log.info("marineDevice with the provided address connected");
         else {
-            System.out.println("Could not connect device.");
+            log.error("Could not connect device.");
             System.exit(-1);
         }
 
-        /*
-         * After we find the device we can stop looking for other devices.
-         */
-        //manager.stopDiscovery();
+        log.info("Waiting for TCP connection...");
+        Socket connectionSocket = welcomeSocket.accept();
+        log.info("Socket connected...");
+        BufferedReader inFromClient = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
+        DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
 
         Lock lock = new ReentrantLock();
         Condition cv = lock.newCondition();
@@ -102,32 +107,36 @@ public class BTNmeaReader {
         BluetoothGattService dataService = marineDevice.find( "0000ffe0-0000-1000-8000-00805f9b34fb");
 
         if (dataService == null) {
-            System.err.println("This device does not have the service we are looking for.");
+            log.error("This device does not have the service we are looking for.");
             marineDevice.disconnect();
             System.exit(-1);
         }
-        System.out.println("Found service " + dataService.getUUID());
+        log.info("Found service " + dataService.getUUID());
 
         BluetoothGattCharacteristic dataValue = dataService.find("0000ffe1-0000-1000-8000-00805f9b34fb");
 
         if (dataValue == null) {
-            System.err.println("Could not find the correct characteristics.");
+            log.error("Could not find the correct characteristics.");
             marineDevice.disconnect();
             System.exit(-1);
         }
 
-        System.out.println("Found the data characteristics");
+        log.info("Found the data characteristics");
 
-        dataValue.enableValueNotifications(new NmeaValueNotification());
+        dataValue.enableValueNotifications(new NmeaValueNotification(outToClient));
 
         lock.lock();
         try {
-            while(running)
+            while(running) {
+                clientSentence = inFromClient.readLine();
+                dataValue.writeValue(clientSentence.getBytes());
                 cv.await();
+            }
         } finally {
             lock.unlock();
         }
         marineDevice.disconnect();
+        welcomeSocket.close();
 
     }
 }

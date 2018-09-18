@@ -7,22 +7,29 @@ package com.bwssystems.marine.nmea;
  */
 
 import tinyb.*;
+
+import java.io.DataOutputStream;
 import java.io.UnsupportedEncodingException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class NmeaValueNotification implements BluetoothNotification<byte[]> {
-	
+	private final static Logger log = LoggerFactory.getLogger(NmeaValueNotification.class);
 	private String nmeaSentence;
 	private String lastSentence;
 	private boolean sentenceInprogress;
 	private boolean cReturn;
+	private DataOutputStream outToClient;
 
-	public NmeaValueNotification() {
+	public NmeaValueNotification(DataOutputStream anOutToClient) {
 		super();
 		nmeaSentence = null;
 		lastSentence = null;
 		sentenceInprogress = false;
 		cReturn = false;
+		outToClient = anOutToClient;
 	}
 
 	public void run(byte[] tempRaw) {
@@ -55,7 +62,13 @@ public class NmeaValueNotification implements BluetoothNotification<byte[]> {
 						nmeaSentence = new String();
 					nmeaSentence = nmeaSentence + sentenceChunk;
 					lastSentence = new String(nmeaSentence);
-					System.out.print(nmeaSentence);
+	                try {
+	                    outToClient.writeBytes(nmeaSentence);
+	                }
+	                catch(Exception e) {
+	                    log.error("TCP Write exception occurred for sentence: " + nmeaSentence);
+	                }
+					log.debug("NMEA Sentence from BT to IP: " + nmeaSentence);
 					nmeaSentence = null;
 					sentenceChunk = null;
 					cReturn = false;
@@ -66,16 +79,14 @@ public class NmeaValueNotification implements BluetoothNotification<byte[]> {
 				try {
 					sentenceChunk = sentenceChunk + new String(new byte[] { b }, "UTF-8");
 				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log.error("Encoding Error on byte: " + b);
 				}
 			} else if (b == 13 && sentenceInprogress) { // check for carriage return 
 				cReturn = true;
 				try {
 					sentenceChunk = sentenceChunk + new String(new byte[] { b }, "UTF-8");
 				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log.error("Encoding Error on byte: " + b);
 				}
 
 			} else if (b == 10 && sentenceInprogress) { // check for line feed
@@ -83,21 +94,25 @@ public class NmeaValueNotification implements BluetoothNotification<byte[]> {
 					try {
 						sentenceChunk = sentenceChunk + new String(new byte[] { 0x0D }, "UTF-8");
 					} catch (UnsupportedEncodingException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						log.error("Encoding Error on byte: " + b);
 					}
 				}
 				try {
 					sentenceChunk = sentenceChunk + new String(new byte[] { b }, "UTF-8");
 				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log.error("Encoding Error on byte: " + b);
 				}
 				if(nmeaSentence == null)
 					nmeaSentence = new String();
 				nmeaSentence = nmeaSentence + sentenceChunk;
 				lastSentence = new String(nmeaSentence);
-				System.out.print(nmeaSentence);
+                try {
+                    outToClient.writeBytes(nmeaSentence);
+                }
+                catch(Exception e) {
+                    log.error("TCP Write exception occurred for sentence: " + nmeaSentence);
+                }
+				log.debug("NMEA Sentence from BT to IP: " + nmeaSentence);
 				nmeaSentence = null;
 				sentenceChunk = null;
 				cReturn = false;
@@ -106,8 +121,7 @@ public class NmeaValueNotification implements BluetoothNotification<byte[]> {
 				try {
 					sentenceChunk = sentenceChunk + new String(new byte[] { b }, "UTF-8");
 				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log.error("Encoding Error on byte: " + b);
 				}
 		}
 		
