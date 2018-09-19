@@ -123,13 +123,18 @@ public class BTNmeaReader {
 
         log.info("Found the data characteristics");
 
+        clientSentence = inFromClient.readLine();
+        try {
+        	dataValue.writeValue(clientSentence.getBytes());
+        }
+        catch(Exception e) {
+        	log.error("BT write error occurred on writing data <<" + clientSentence + ">>: " + e.getMessage());
+        }
         dataValue.enableValueNotifications(new NmeaValueNotification(outToClient));
 
         lock.lock();
         try {
             while(running) {
-                clientSentence = inFromClient.readLine();
-                dataValue.writeValue(clientSentence.getBytes());
                 cv.await();
             }
         } finally {

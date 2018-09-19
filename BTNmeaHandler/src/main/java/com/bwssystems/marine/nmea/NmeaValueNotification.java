@@ -66,7 +66,7 @@ public class NmeaValueNotification implements BluetoothNotification<byte[]> {
 	                    outToClient.writeBytes(nmeaSentence);
 	                }
 	                catch(Exception e) {
-	                    log.error("TCP Write exception occurred for sentence: " + nmeaSentence);
+	                    log.error("TCP Write exception occurred for sentence (short): " + nmeaSentence + " due to: " + e.getMessage());
 	                }
 					log.debug("NMEA Sentence from BT to IP: " + nmeaSentence);
 					nmeaSentence = null;
@@ -110,7 +110,7 @@ public class NmeaValueNotification implements BluetoothNotification<byte[]> {
                     outToClient.writeBytes(nmeaSentence);
                 }
                 catch(Exception e) {
-                    log.error("TCP Write exception occurred for sentence: " + nmeaSentence);
+                    log.error("TCP Write exception occurred for sentence (normal): " + nmeaSentence + " due to: " + e.getMessage());
                 }
 				log.debug("NMEA Sentence from BT to IP: " + nmeaSentence);
 				nmeaSentence = null;
